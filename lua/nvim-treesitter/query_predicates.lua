@@ -15,6 +15,20 @@ local non_filetype_match_injection_language_aliases = {
   ts = "typescript",
 }
 
+-- https://github.com/nvim-treesitter/nvim-treesitter/issues/8636
+-- In Neovim 0.12, match[id] returns a list of nodes instead of a single node.
+-- Unwrap to get the first node for backwards compatibility.
+local function get_match_node(match, id)
+  local val = match[id]
+  if not val then
+    return nil
+  end
+  if type(val) == "table" then
+    return val[1]
+  end
+  return val
+end
+
 -- compatibility shim for breaking change on nightly/0.11
 local opts = vim.fn.has "nvim-0.10" == 1 and { force = true, all = false } or true
 
@@ -113,7 +127,7 @@ end, opts)
 ---@return boolean|nil
 query.add_directive("set-lang-from-mimetype!", function(match, _, bufnr, pred, metadata)
   local capture_id = pred[2]
-  local node = match[capture_id]
+  local node = get_match_node(match, capture_id)
   if not node then
     return
   end
@@ -134,7 +148,7 @@ end, opts)
 ---@return boolean|nil
 query.add_directive("set-lang-from-info-string!", function(match, _, bufnr, pred, metadata)
   local capture_id = pred[2]
-  local node = match[capture_id]
+  local node = get_match_node(match, capture_id)
   if not node then
     return
   end
@@ -154,7 +168,7 @@ query.add_directive("make-range!", function() end, opts)
 ---@return boolean|nil
 query.add_directive("downcase!", function(match, _, bufnr, pred, metadata)
   local id = pred[2]
-  local node = match[id]
+  local node = get_match_node(match, id)
   if not node then
     return
   end
